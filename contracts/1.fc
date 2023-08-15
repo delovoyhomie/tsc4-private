@@ -9,7 +9,33 @@
 () recv_internal() {
 }
 
+forall X -> int is_null (X x) asm "ISNULL";
+forall X -> (tuple, ()) push_back (tuple tail, X head) asm "CONS";
+forall X -> (tuple, (X)) pop_back (tuple t) asm "UNCONS";
+
+int cell_hash(cell c) asm "HASHCU";
+
 ;; testable
 (cell) find_branch_by_hash(int hash, cell tree) method_id {
+  tuple stack = null();
+  stack~push_back(tree);
+
+  
+  while (~ stack.is_null()) {
+      ;; get the cell from the stack and convert it to a slice to be able to process it
+      cell c = stack~pop_back();
+
+      if (cell_hash(c) == hash){
+        return c;
+      }
+      
+      slice s = c.begin_parse();
+
+      ;; if the current slice has any refs, add them to stack
+      repeat (s.slice_refs()) {
+          stack~push_back(s~load_ref());
+      }
+  }
+
   return begin_cell().end_cell();
 }
